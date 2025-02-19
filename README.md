@@ -1,69 +1,106 @@
-# Realtime Data Streaming | End-to-End Data Engineering Project
+# Real-time Data Engineering Pipeline
 
 ## Table of Contents
-- [Introduction](#introduction)
 - [System Architecture](#system-architecture)
-- [What You'll Learn](#what-youll-learn)
-- [Technologies](#technologies)
-- [Getting Started](#getting-started)
+- [Tech Stack](#tech-stack)
+- [Local Development Setup](#local-development-setup)
+- [Docker Setup](#docker-setup)
+- [Project Structure](#project-structure)
+- [Data Flow](#data-flow)
+- [Monitoring](#monitoring)
+- [Troubleshooting](#troubleshooting)
 - [Watch the Video Tutorial](#watch-the-video-tutorial)
-
-## Introduction
-
-This project serves as a comprehensive guide to building an end-to-end data engineering pipeline. It covers each stage from data ingestion to processing and finally to storage, utilizing a robust tech stack that includes Apache Airflow, Python, Apache Kafka, Apache Zookeeper, Apache Spark, and Cassandra. Everything is containerized using Docker for ease of deployment and scalability.
 
 ## System Architecture
 
-![System Architecture](https://github.com/airscholar/e2e-data-engineering/blob/main/Data%20engineering%20architecture.png)
+![System Architecture] [./Data engineering architecture.png]
 
-The project is designed with the following components:
-
-- **Data Source**: We use `randomuser.me` API to generate random user data for our pipeline.
-- **Apache Airflow**: Responsible for orchestrating the pipeline and storing fetched data in a PostgreSQL database.
-- **Apache Kafka and Zookeeper**: Used for streaming data from PostgreSQL to the processing engine.
-- **Control Center and Schema Registry**: Helps in monitoring and schema management of our Kafka streams.
-- **Apache Spark**: For data processing with its master and worker nodes.
-- **Cassandra**: Where the processed data will be stored.
-
-## What You'll Learn
-
-- Setting up a data pipeline with Apache Airflow
-- Real-time data streaming with Apache Kafka
-- Distributed synchronization with Apache Zookeeper
-- Data processing techniques with Apache Spark
-- Data storage solutions with Cassandra and PostgreSQL
-- Containerizing your entire data engineering setup with Docker
-
-## Technologies
-
+## Tech Stack
 - Apache Airflow
-- Python
-- Apache Kafka
-- Apache Zookeeper
+- Apache Kafka & Zookeeper
 - Apache Spark
 - Cassandra
 - PostgreSQL
 - Docker
 
-## Getting Started
+## Local Development Setup
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/airscholar/e2e-data-engineering.git
-    ```
+1. Create and activate virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate  
+```
 
-2. Navigate to the project directory:
-    ```bash
-    cd e2e-data-engineering
-    ```
+2. Install core dependencies:
+```bash
+pip install apache-airflow kafka-python requests
+```
 
-3. Run Docker Compose to spin up the services:
-    ```bash
-    docker-compose up
-    ```
+3. Set up Airflow:
+```bash
+# Set Airflow home
+export AIRFLOW_HOME=~/airflow
 
-For more detailed instructions, please check out the video tutorial linked below.
+# Initialize the database
+airflow db init
 
-## Watch the Video Tutorial
+# Create admin user
+airflow users create \
+    --username admin \
+    --firstname admin \
+    --lastname admin \
+    --role Admin \
+    --email admin@example.com \
+    --password admin
 
-For a complete walkthrough and practical demonstration, check out our [YouTube Video Tutorial](https://www.youtube.com/watch?v=GqAcTrqKcrY).
+# Start Airflow webserver (in one terminal)
+airflow webserver --port 8080
+
+# Start Airflow scheduler (in another terminal)
+airflow scheduler
+```
+
+4. Access Airflow UI at http://localhost:8080
+
+## Docker Setup
+
+1. Start all services:
+```bash
+docker-compose up -d
+```
+
+2. Access Services:
+- Airflow: http://localhost:8080
+- Kafka Control Center: http://localhost:9021
+- Spark Master: http://localhost:9090
+
+3. Stop services:
+```bash
+docker-compose down
+```
+
+## Project Structure
+```
+e2e-data-engineering/
+├── dags/                   # Airflow DAGs
+├── script/                 # Setup scripts
+├── docker-compose.yml      # Docker services configuration
+└── requirements.txt        # Python dependencies
+```
+
+## Data Flow
+1. Random user data fetched from API
+2. Data streamed through Kafka
+3. Processed with Spark
+4. Stored in Cassandra
+
+## Monitoring
+- Kafka Control Center: Monitor Kafka clusters, topics, and messages
+- Spark UI: Track Spark jobs and executors
+- Airflow UI: DAG runs and task status
+
+## Troubleshooting
+- Check logs: `docker-compose logs -f [service_name]`
+- Restart service: `docker-compose restart [service_name]`
+- Clean rebuild: `docker-compose down -v && docker-compose up --build`
+# realtime-streaming-project
