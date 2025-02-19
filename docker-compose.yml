@@ -106,7 +106,6 @@ services:
 
   webserver:
     image: apache/airflow:2.6.0-python3.9
-    command: webserver
     entrypoint: ['/opt/airflow/script/entrypoint.sh']
     depends_on:
       - postgres
@@ -115,6 +114,14 @@ services:
       - EXECUTOR=Sequential
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW_WEBSERVER_SECRET_KEY=this_is_a_very_secured_key
+    user: "0:0"  # Add this line to run as root temporarily
+    # Add build dependencies
+    command: >
+      bash -c "apt-get update && 
+      apt-get install -y build-essential python3-dev libffi-dev rustc cargo pkg-config libuv1-dev &&
+      pip install --upgrade pip setuptools wheel &&
+      pip install --no-cache-dir -r requirements.txt &&
+      airflow webserver"
     logging:
       options:
         max-size: 10m
@@ -147,7 +154,14 @@ services:
       - EXECUTOR=Sequential
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW_WEBSERVER_SECRET_KEY=this_is_a_very_secured_key
-    command: bash -c "pip install -r ./requirements.txt && airflow db upgrade && airflow scheduler"
+    user: "0:0"  # Add this line to run as root temporarily
+    command: >
+      bash -c "apt-get update && 
+      apt-get install -y build-essential python3-dev libffi-dev rustc cargo pkg-config libuv1-dev &&
+      pip install --upgrade pip setuptools wheel &&
+      pip install --no-cache-dir -r requirements.txt &&
+      airflow db upgrade && 
+      airflow scheduler"
     networks:
       - confluent
 
