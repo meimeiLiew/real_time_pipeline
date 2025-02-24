@@ -1,20 +1,19 @@
 # Real-time Data Engineering Pipeline
 
-A fully tested and configured data engineering environment with Apache Kafka, Spark, Airflow, PostgreSQL, and Cassandra.
-
-## Table of Contents
-- [System Architecture](#system-architecture)
-- [Tech Stack](#tech-stack)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [Data Flow](#data-flow)
-- [Monitoring](#monitoring)
-- [Troubleshooting](#troubleshooting)
-- [Watch the Video Tutorial](#watch-the-video-tutorial)
+A production-ready data engineering environment with Apache Kafka, Spark, Airflow, PostgreSQL, and Cassandra. This project demonstrates a complete end-to-end data pipeline with real-time processing capabilities.
 
 ## System Architecture
 
 ![System Architecture](./Data%20engineering%20architecture.png)
+
+## Features
+- Real-time data streaming with Apache Kafka
+- Distributed processing with Apache Spark
+- Workflow orchestration with Apache Airflow
+- Data storage in PostgreSQL and Cassandra
+- Containerized environment with Docker
+- Comprehensive monitoring and logging
+- Fully tested components
 
 ## Tech Stack
 - Apache Airflow 2.6.0
@@ -24,12 +23,18 @@ A fully tested and configured data engineering environment with Apache Kafka, Sp
 - PostgreSQL
 - Docker & Docker Compose
 
+## Prerequisites
+- Docker and Docker Compose installed
+- Git
+- Minimum 8GB RAM recommended
+- 20GB free disk space
+
 ## Quick Start
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/meimeiLiew/e2e-data-engineering.git
-cd e2e-data-engineering
+git clone https://github.com/meimeiLiew/real_time_pipeline.git
+cd real_time_pipeline
 ```
 
 2. Create .env file:
@@ -47,55 +52,49 @@ AIRFLOW_LASTNAME=User
 AIRFLOW__WEBSERVER__SECRET_KEY=your_secret_key_here
 ```
 
-3. Start the services:
+3. Start the services (recommended order):
 ```bash
 # Start core services first
 docker-compose up -d zookeeper broker schema-registry postgres
-
-# Wait for 30 seconds
 sleep 30
 
-# Start remaining services
-docker-compose up -d
+# Start Airflow services
+docker-compose up -d webserver scheduler
+sleep 20
+
+# Start processing services
+docker-compose up -d spark-master spark-worker cassandra_db
+
+# Start monitoring services
+docker-compose up -d kafka-ui control-center
 ```
 
-## Service URLs
-- Airflow UI: http://localhost:8080
+## Service URLs and Credentials
+- Airflow UI: http://localhost:8080 
+  - Username: admin
+  - Password: admin
 - Spark Master UI: http://localhost:9090
 - Kafka UI: http://localhost:8082
 - Control Center: http://localhost:9021
 
 ## Project Structure
 ```
-e2e-data-engineering/
-├── dags/                   # Airflow DAGs
-├── script/                 # Setup scripts
+real_time_pipeline/
+├── dags/                   # Airflow DAG files
+│   ├── test_dag.py        # Test DAG
+│   └── kafka_stream.py    # Kafka streaming DAG
+├── script/                 # Setup and utility scripts
+├── tests/                  # Test files
 ├── docker-compose.yml      # Docker services configuration
 ├── requirements.txt        # Python dependencies
+├── create_user.py         # Airflow user creation script
+├── spark_test.py          # Spark testing script
 └── README.md              # Project documentation
 ```
 
-## Data Flow
-1. Random user data fetched from API
-2. Data streamed through Kafka
-3. Processed with Spark
-4. Stored in Cassandra
+## Component Testing
 
-## Monitoring
-- Kafka Control Center: Monitor Kafka clusters, topics, and messages
-- Spark UI: Track Spark jobs and executors
-- Airflow UI: DAG runs and task status
-
-## Troubleshooting
-- Check logs: `docker-compose logs -f [service_name]`
-- Restart service: `docker-compose restart [service_name]`
-- Clean rebuild: `docker-compose down -v && docker-compose up --build`
-
-## Watch the Video Tutorial
-
-## Service Verification
-
-### 1. Kafka
+### 1. Kafka Testing
 ```bash
 # Create test topic
 docker exec broker kafka-topics --bootstrap-server broker:29092 \
@@ -103,31 +102,31 @@ docker exec broker kafka-topics --bootstrap-server broker:29092 \
 
 # List topics
 docker exec broker kafka-topics --bootstrap-server broker:29092 --list
+
+# Produce test message
+docker exec -i broker kafka-console-producer --bootstrap-server broker:29092 \
+    --topic test-topic
+
+# Consume messages
+docker exec broker kafka-console-consumer --bootstrap-server broker:29092 \
+    --topic test-topic --from-beginning
 ```
 
-### 2. Spark
+### 2. Spark Testing
 ```python
-# Test PySpark (save as spark_test.py)
-from pyspark.sql import SparkSession
-
-spark = SparkSession.builder \
-    .appName("test") \
-    .master("spark://spark-master:7077") \
-    .config("spark.driver.host", "spark-master") \
-    .config("spark.driver.bindAddress", "0.0.0.0") \
-    .config("spark.executor.memory", "512m") \
-    .config("spark.driver.memory", "512m") \
-    .getOrCreate()
-
-# Create test DataFrame
-test_data = [("test1", 1), ("test2", 2)]
-df = spark.createDataFrame(test_data, ["name", "value"])
-df.show()
-spark.stop()
+# Run the spark_test.py script
+docker exec spark-master spark-submit \
+    --master spark://spark-master:7077 \
+    --driver-memory 512m \
+    --executor-memory 512m \
+    /opt/bitnami/spark/spark_test.py
 ```
 
-### 3. Cassandra
+### 3. Cassandra Testing
 ```bash
+# Test connection
+docker exec -it cassandra_db cqlsh -e "SELECT release_version FROM system.local"
+
 # Create test keyspace
 docker exec -it cassandra_db cqlsh -e "CREATE KEYSPACE IF NOT EXISTS test_keyspace \
     WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};"
@@ -142,17 +141,97 @@ CREATE TABLE IF NOT EXISTS users (
 );"
 ```
 
-### 4. PostgreSQL
+### 4. PostgreSQL Testing
 ```bash
 # Test connection
 docker exec -it postgres psql -U airflow -c "SELECT version();"
 
 # Create test database
 docker exec -it postgres psql -U airflow -c "CREATE DATABASE test_db;"
+
+# Create test table
+docker exec -it postgres psql -U airflow -d test_db -c "
+CREATE TABLE test_table (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);"
 ```
 
+## Monitoring and Maintenance
+
+### Health Checks
+```bash
+# Check service status
+docker-compose ps
+
+# Check logs
+docker-compose logs -f [service_name]
+
+# Monitor resource usage
+docker stats
+```
+
+### Common Issues and Solutions
+
+1. **Service Won't Start**
+```bash
+# Check logs
+docker-compose logs [service_name]
+
+# Restart service
+docker-compose restart [service_name]
+```
+
+2. **Memory Issues**
+```bash
+# Clean Docker system
+docker system prune -a
+docker volume prune
+```
+
+3. **Connection Issues**
+- Ensure all services are healthy: `docker-compose ps`
+- Check network connectivity: `docker network ls`
+- Verify port mappings: `docker-compose port [service_name] [port]`
+
+4. **Complete Reset**
+```bash
+docker-compose down -v
+docker-compose up -d
+```
+
+## Development
+
+### Adding New DAGs
+1. Place your DAG file in the `dags/` directory
+2. Ensure proper imports and dependencies
+3. Test the DAG using Airflow's web interface
+
+### Modifying Configurations
+1. Environment variables: Update `.env` file
+2. Service configs: Modify `docker-compose.yml`
+3. Restart affected services: `docker-compose restart [service_name]`
+
 ## Contributing
-Feel free to submit issues, fork the repository and create pull requests for any improvements.
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/YourFeature`
+3. Commit your changes: `git commit -m 'Add YourFeature'`
+4. Push to the branch: `git push origin feature/YourFeature`
+5. Submit a pull request
+
+## Troubleshooting
+- Check service logs: `docker-compose logs -f [service_name]`
+- Verify environment variables are set correctly
+- Ensure sufficient system resources
+- Check network connectivity between services
+- Verify all required ports are available
 
 ## License
 [MIT License](LICENSE)
+
+## Acknowledgments
+- Apache Software Foundation
+- Confluent
+- Docker
+- All contributors to this project
