@@ -1,10 +1,11 @@
 # Real-time Data Engineering Pipeline
 
+A fully tested and configured data engineering environment with Apache Kafka, Spark, Airflow, PostgreSQL, and Cassandra.
+
 ## Table of Contents
 - [System Architecture](#system-architecture)
 - [Tech Stack](#tech-stack)
-- [Local Development Setup](#local-development-setup)
-- [Docker Setup](#docker-setup)
+- [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
 - [Data Flow](#data-flow)
 - [Monitoring](#monitoring)
@@ -13,71 +14,56 @@
 
 ## System Architecture
 
-![System Architecture] [./Data engineering architecture.png]
+![System Architecture](./Data%20engineering%20architecture.png)
 
 ## Tech Stack
-- Apache Airflow
-- Apache Kafka & Zookeeper
-- Apache Spark
-- Cassandra
+- Apache Airflow 2.6.0
+- Apache Kafka (Confluent Platform 7.4.0)
+- Apache Spark 3.5.4
+- Cassandra 4.0
 - PostgreSQL
-- Docker
+- Docker & Docker Compose
 
-## Local Development Setup
+## Quick Start
 
-1. Create and activate virtual environment:
+1. Clone the repository:
 ```bash
-python3 -m venv venv
-source venv/bin/activate  
+git clone https://github.com/meimeiLiew/e2e-data-engineering.git
+cd e2e-data-engineering
 ```
 
-2. Install core dependencies:
+2. Create .env file:
 ```bash
-pip install apache-airflow kafka-python requests
+# Postgres
+POSTGRES_USER=airflow
+POSTGRES_PASSWORD=airflow
+
+# Airflow
+AIRFLOW_USERNAME=admin
+AIRFLOW_PASSWORD=admin
+AIRFLOW_EMAIL=admin@example.com
+AIRFLOW_FIRSTNAME=Admin
+AIRFLOW_LASTNAME=User
+AIRFLOW__WEBSERVER__SECRET_KEY=your_secret_key_here
 ```
 
-3. Set up Airflow:
+3. Start the services:
 ```bash
-# Set Airflow home
-export AIRFLOW_HOME=~/airflow
+# Start core services first
+docker-compose up -d zookeeper broker schema-registry postgres
 
-# Initialize the database
-airflow db init
+# Wait for 30 seconds
+sleep 30
 
-# Create admin user
-airflow users create \
-    --username admin \
-    --firstname admin \
-    --lastname admin \
-    --role Admin \
-    --email admin@example.com \
-    --password admin
-
-# Start Airflow webserver (in one terminal)
-airflow webserver --port 8080
-
-# Start Airflow scheduler (in another terminal)
-airflow scheduler
-```
-
-4. Access Airflow UI at http://localhost:8080
-
-## Docker Setup
-
-1. Start all services:
-```bash
+# Start remaining services
 docker-compose up -d
 ```
 
-2. Access Services:
-- Airflow: http://localhost:8080
-- Kafka Control Center: http://localhost:9021
-- Spark Master: http://localhost:9090
-
-3. Stop services:
-```bash
-docker-compose down
-```
+## Service URLs
+- Airflow UI: http://localhost:8080
+- Spark Master UI: http://localhost:9090
+- Kafka UI: http://localhost:8082
+- Control Center: http://localhost:9021
 
 ## Project Structure
 ```
@@ -85,7 +71,8 @@ e2e-data-engineering/
 ├── dags/                   # Airflow DAGs
 ├── script/                 # Setup scripts
 ├── docker-compose.yml      # Docker services configuration
-└── requirements.txt        # Python dependencies
+├── requirements.txt        # Python dependencies
+└── README.md              # Project documentation
 ```
 
 ## Data Flow
@@ -103,4 +90,69 @@ e2e-data-engineering/
 - Check logs: `docker-compose logs -f [service_name]`
 - Restart service: `docker-compose restart [service_name]`
 - Clean rebuild: `docker-compose down -v && docker-compose up --build`
-# realtime-streaming-project
+
+## Watch the Video Tutorial
+
+## Service Verification
+
+### 1. Kafka
+```bash
+# Create test topic
+docker exec broker kafka-topics --bootstrap-server broker:29092 \
+    --create --topic test-topic --partitions 1 --replication-factor 1
+
+# List topics
+docker exec broker kafka-topics --bootstrap-server broker:29092 --list
+```
+
+### 2. Spark
+```python
+# Test PySpark (save as spark_test.py)
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("test") \
+    .master("spark://spark-master:7077") \
+    .config("spark.driver.host", "spark-master") \
+    .config("spark.driver.bindAddress", "0.0.0.0") \
+    .config("spark.executor.memory", "512m") \
+    .config("spark.driver.memory", "512m") \
+    .getOrCreate()
+
+# Create test DataFrame
+test_data = [("test1", 1), ("test2", 2)]
+df = spark.createDataFrame(test_data, ["name", "value"])
+df.show()
+spark.stop()
+```
+
+### 3. Cassandra
+```bash
+# Create test keyspace
+docker exec -it cassandra_db cqlsh -e "CREATE KEYSPACE IF NOT EXISTS test_keyspace \
+    WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};"
+
+# Create test table
+docker exec -it cassandra_db cqlsh -e "
+USE test_keyspace;
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY,
+    name text,
+    email text
+);"
+```
+
+### 4. PostgreSQL
+```bash
+# Test connection
+docker exec -it postgres psql -U airflow -c "SELECT version();"
+
+# Create test database
+docker exec -it postgres psql -U airflow -c "CREATE DATABASE test_db;"
+```
+
+## Contributing
+Feel free to submit issues, fork the repository and create pull requests for any improvements.
+
+## License
+[MIT License](LICENSE)

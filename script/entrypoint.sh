@@ -2,21 +2,24 @@
 set -e
 
 if [ -e "/opt/airflow/requirements.txt" ]; then
-  $(command python) pip install --upgrade pip
-  $(command -v pip) install --user -r requirements.txt
+    $(command -v pip) install --upgrade pip
+    $(command -v pip) install --user -r requirements.txt
 fi
 
-if [ ! -f "/opt/airflow/airflow.db" ]; then
-  airflow db init && \
-  airflow users create \
-    --username admin \
-    --firstname admin \
-    --lastname admin \
+# Initialize Airflow db
+airflow db init
+
+# Create default admin user if not exists
+airflow users create \
+    --username ${AIRFLOW_USERNAME:-meimei} \
+    --firstname ${AIRFLOW_FIRSTNAME:-meimei} \
+    --lastname ${AIRFLOW_LASTNAME:-liew} \
     --role Admin \
-    --email admin@example.com \
-    --password admin
-fi
+    --email ${AIRFLOW_EMAIL:-meimeiliew95@gmail.com} \
+    --password ${AIRFLOW_PASSWORD:-meimeiliew} \
+    || true
 
-$(command -v airflow) db upgrade
+# Upgrade the database
+airflow db upgrade
 
 exec airflow webserver

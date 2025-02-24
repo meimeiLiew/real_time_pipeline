@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import uuid
 from datetime import datetime
 from airflow import DAG
@@ -48,7 +50,7 @@ def stream_data():
 
     try:
         producer = KafkaProducer(
-            bootstrap_servers=['broker:29092'],
+            bootstrap_servers=['broker:29092'],  # Changed from localhost:9093
             api_version=(0, 10, 2),
             max_block_ms=5000,
             value_serializer=lambda x: json.dumps(x).encode('utf-8')
@@ -73,7 +75,7 @@ def stream_data():
 
 with DAG('user_automation',
          default_args=default_args,
-         schedule_interval='@daily',
+         schedule='@daily',  # Updated from schedule_interval
          catchup=False) as dag:
 
     streaming_task = PythonOperator(
