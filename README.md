@@ -4,7 +4,7 @@ A production-ready data engineering environment with Apache Kafka, Spark, Airflo
 
 ## System Architecture
 
-![System Architecture](./Data%20engineering%20architecture.png)
+![System Architecture](./data%20engineering%20architecture.png)
 
 ## Features
 - Real-time data streaming with Apache Kafka
