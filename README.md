@@ -201,37 +201,3 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-## Development
-
-### Adding New DAGs
-1. Place your DAG file in the `dags/` directory
-2. Ensure proper imports and dependencies
-3. Test the DAG using Airflow's web interface
-
-### Modifying Configurations
-1. Environment variables: Update `.env` file
-2. Service configs: Modify `docker-compose.yml`
-3. Restart affected services: `docker-compose restart [service_name]`
-
-## Contributing
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/YourFeature`
-3. Commit your changes: `git commit -m 'Add YourFeature'`
-4. Push to the branch: `git push origin feature/YourFeature`
-5. Submit a pull request
-
-## Troubleshooting
-- Check service logs: `docker-compose logs -f [service_name]`
-- Verify environment variables are set correctly
-- Ensure sufficient system resources
-- Check network connectivity between services
-- Verify all required ports are available
-
-## License
-[MIT License](LICENSE)
-
-## Acknowledgments
-- Apache Software Foundation
-- Confluent
-- Docker
-- All contributors to this project
